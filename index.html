@@ -3,9 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Dachdeckermeisterbetrieb Sloan in Kassel. Ihr Experte für Dachreparatur, Neueindeckung und Notdienst. Meisterqualität, Festpreis-Garantie und kostenlose Besichtigung.">
-    <meta name="keywords" content="Dachdecker Kassel, Dachreparatur Kassel, Dachneueindeckung, Flachdach, Notfall Dachdecker Kassel, Dachwartung">
+    
+    <!-- SEO Meta Tags -->
     <title>Dachdeckermeisterbetrieb Sloan | Kassel - Ihr Dach in sicheren Händen</title>
+    <meta name="description" content="Dachdecker Kassel: Meisterbetrieb Sloan bietet Dachreparatur, Neueindeckung und Notdienst. Kostenlose Besichtigung und Festpreis-Garantie in Kassel und Umgebung.">
+    <meta name="keywords" content="Dachdecker Kassel, Dachreparatur, Dachneueindeckung, Flachdach, Notfall Dachdecker, Dachwartung, Kassel, Baunatal, Vellmar">
+    
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="Dachdeckermeisterbetrieb Sloan | Kassel">
+    <meta property="og:description" content="Ihr zuverlässiger Dachdecker in Kassel. Kostenlose Besichtigung und 24/7 Notdienst.">
+    <meta property="og:image" content="images/hero-solar.jpg">
+    <meta property="og:url" content="http://localhost:3000">
+    <meta property="og:type" content="website">
+
+    <!-- Structured Data for Local Business -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "RoofingContractor",
+      "name": "Dachdeckermeisterbetrieb Sloan",
+      "image": "images/hero-solar.jpg",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Wolfhager Str. 123",
+        "addressLocality": "Kassel",
+        "postalCode": "34127",
+        "addressCountry": "DE"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 51.3127,
+        "longitude": 9.4797
+      },
+      "url": "http://localhost:3000",
+      "telephone": "+4917630714891",
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          "opens": "07:00",
+          "closes": "18:00"
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "5.0",
+        "reviewCount": "48"
+      }
+    }
+    </script>
+
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
@@ -121,7 +168,7 @@
                 <h2>Wasserschaden? Sturm? Sofort-Notdienst!</h2>
                 <p>24/7 erreichbar – innerhalb von 2 Stunden bei Ihnen vor Ort in Kassel.</p>
             </div>
-            <a href="tel:+4917630714891" class="btn btn-white"><i class="fas fa-phone"></i> +49 176 30714891</a>
+            <a href="tel:+4917630714891" class="btn btn-white btn-emergency-call"><i class="fas fa-phone"></i> +49 176 30714891</a>
         </div>
     </section>
 
@@ -161,13 +208,12 @@
                 </div>
             </div>
         </div>
-    </section>
 
 <!-- ===== INSTAGRAM ===== -->
-<section class="instagram">
+<section class="instagram-section">
     <div class="container">
         <h2 class="section-title">Folgen Sie uns auf Instagram</h2>
-        <p class="section-sub">Tägliche Einblicke in unsere Projekte aus Kassel und Umgebung</p>
+        <p class="section-subtitle">Tägliche Einblicke in unsere Projekte aus Kassel und Umgebung</p>
         <div class="instagram-embed">
             <iframe src="https://www.instagram.com/roof.brothers/embed" width="100%" height="480" frameborder="0" scrolling="no" allowtransparency="true" style="border-radius:12px;max-width:540px;margin:0 auto;display:block;"></iframe>
         </div>
@@ -176,6 +222,7 @@
         </div>
     </div>
 </section>
+    </section>
 
     <section id="reviews" class="reviews">
         <div class="container">
@@ -290,6 +337,11 @@
             <p>&copy; 2026 Dachdeckermeisterbetrieb Sloan. Alle Rechte vorbehalten.</p>
         </div>
     </footer>
+
+    <!-- Fixed Click-to-Call for Mobile -->
+    <a href="tel:+4917630714891" class="fixed-call-btn" aria-label="Jetzt anrufen">
+        <i class="fas fa-phone"></i>
+    </a>
 
     <!-- AI Chatbot UI -->
     <div id="chat-widget" class="chat-widget">
