@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addMessage('Gerne! Um ein passendes Angebot zu erstellen, brauche ich ein paar Infos. Wie ist Ihr vollständiger Name?', 'bot');
                 botState = 'collecting_name';
             } else if (lowInput.includes('notfall') || lowInput.includes('sturm') || lowInput.includes('wasser')) {
-                addMessage('WICHTIG: Bei akuten Notfällen rufen Sie uns bitte direkt an: +49 561 12345678. Wir sind 24/7 erreichbar!', 'bot');
+                addMessage('WICHTIG: Bei akuten Notfällen rufen Sie uns bitte direkt an: +49 176 30714891. Wir sind 24/7 für Sie da!', 'bot');
             } else if (lowInput.includes('reparatur') || lowInput.includes('kosten')) {
                 addMessage('Kleinere Reparaturen fangen oft bei 250€ an. Am besten vereinbaren wir eine kostenlose Besichtigung. Möchten Sie das?', 'bot');
             } else {
