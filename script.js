@@ -1,376 +1,276 @@
-/* ===== DACHECKERMEISTERBETRIEB SLOAN – WEBSITE SCRIPTS ===== */
-
 document.addEventListener('DOMContentLoaded', () => {
-
-    // ===== MOBILE MENU TOGGLE =====
-    const menuToggle = document.getElementById('menu-toggle');
-    const navMenu = document.getElementById('nav-menu');
+    // 1. Mobile Menu Toggle
+    const menuToggle = document.querySelector('.menu-toggle');
+    const navLinks = document.querySelector('.nav-links');
 
     if (menuToggle) {
         menuToggle.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
+            navLinks.classList.toggle('active');
             const icon = menuToggle.querySelector('i');
-            icon.className = navMenu.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
-        });
-
-        // Close menu on link click
-        navMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                navMenu.classList.remove('active');
-                menuToggle.querySelector('i').className = 'fas fa-bars';
-            });
+            if (navLinks.classList.contains('active')) {
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-times');
+            } else {
+                icon.classList.remove('fa-times');
+                icon.classList.add('fa-bars');
+            }
         });
     }
 
-    // ===== SMOOTH SCROLLING =====
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            const href = this.getAttribute('href');
-            if (href === '#') return;
-            e.preventDefault();
-            const target = document.querySelector(href);
-            if (target) {
-                const offset = 80;
-                window.scrollTo({
-                    top: target.offsetTop - offset,
-                    behavior: 'smooth'
-                });
+    // Close mobile menu when clicking a link
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+            const icon = menuToggle.querySelector('i');
+            icon.classList.remove('fa-times');
+            icon.classList.add('fa-bars');
+        });
+    });
+
+    // 2. FAQ Accordion
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    accordionHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const item = header.parentElement;
+            const isActive = item.classList.contains('active');
+            
+            // Close all items
+            document.querySelectorAll('.accordion-item').forEach(i => i.classList.remove('active'));
+            
+            // Toggle current item
+            if (!isActive) {
+                item.classList.add('active');
             }
         });
     });
 
-    // ===== FAQ ACCORDION =====
-    const faqQuestions = document.querySelectorAll('.faq-question');
-
-    faqQuestions.forEach(question => {
-        question.addEventListener('click', () => {
-            const answer = question.nextElementSibling;
-            const toggle = question.querySelector('.faq-toggle');
-
-            // Close all others
-            faqQuestions.forEach(q => {
-                if (q !== question) {
-                    q.nextElementSibling.classList.remove('active');
-                    q.querySelector('.faq-toggle').classList.remove('active');
-                }
-            });
-
-            // Toggle current
-            answer.classList.toggle('active');
-            toggle.classList.toggle('active');
-        });
-    });
-
-    // ===== SIMPLE LEAD FORM HANDLER =====
-    const handleLeadSubmit = (form, source = 'website') => {
-        const data = new FormData(form);
-        const lead = {
-            name: data.get('name'),
-            phone: data.get('phone'),
-            email: data.get('email') || 'nicht angegeben',
-            roofType: data.get('roof-type') || 'nicht angegeben',
-            message: data.get('message') || 'nicht angegeben',
-            date: data.get('date') || 'nicht angegeben',
-            source: source,
-            timestamp: new Date().toISOString()
-        };
-
-        // Log lead (in production, send to CRM/email)
-        console.log('=== NEUE LEAD-ANFRAGE ===', lead);
-
-        // Show success message
-        const btn = form.querySelector('button[type="submit"]');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> Gesendet! Wir melden uns in 24h.';
-        btn.style.background = '#27ae60';
-        btn.disabled = true;
-
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.style.background = '';
-            btn.disabled = false;
-            form.reset();
-        }, 4000);
-
-        return false;
-    };
-
-    const leadForm = document.getElementById('lead-form');
-    if (leadForm) {
-        leadForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleLeadSubmit(leadForm, 'Hero Formular');
-        });
-    }
-
-    const ctaForm = document.getElementById('cta-form');
-    if (ctaForm) {
-        ctaForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleLeadSubmit(ctaForm, 'CTA Formular');
-        });
-    }
-
-    // ===== AI CHATBOT =====
+    // 3. AI Sales Agent (Chatbot)
     const chatTrigger = document.getElementById('chat-trigger');
     const chatWidget = document.getElementById('chat-widget');
     const closeChat = document.getElementById('close-chat');
     const sendChat = document.getElementById('send-chat');
     const chatInput = document.getElementById('chat-input');
     const chatBody = document.getElementById('chat-body');
+    const chatReplies = document.getElementById('chat-replies');
 
+    let currentStep = 'init';
     let leadData = {};
-    let chatStep = null; // null, 'awaiting_name', 'awaiting_phone', 'awaiting_address', 'awaiting_date'
+    let flowType = ''; // 'besichtigung', 'notfall', 'angebot', 'faq'
 
-    // Toggle chat
+    const faqs = [
+        { q: 'kosten', a: 'Eine präzise Kostenschätzung erfordert eine Besichtigung. Kleinere Reparaturen starten bei ca. 250€. Wir bieten Festpreis-Garantie nach dem Check.' },
+        { q: 'besichtigung', a: 'Unsere Besichtigungen in Kassel sind 100% kostenlos und unverbindlich. Ein Meister schaut sich den Zustand vor Ort an.' },
+        { q: 'versicherung', a: 'Wir unterstützen Sie vollumfänglich bei der Schadensregulierung mit Ihrer Versicherung, inklusive Fotos und Dokumentation.' },
+        { q: 'dauer', a: 'Ein neues Dach dauert meist 1-2 Wochen. Reparaturen erledigen wir oft innerhalb eines Tages.' },
+        { q: 'notdienst', a: 'Ja, unser Notdienst ist 24/7 unter +49 561 12345678 erreichbar und in der Regel binnen 2 Stunden vor Ort.' },
+        { q: 'gebiet', a: 'Wir sind in ganz Kassel und im Umkreis von ca. 50km (Vellmar, Baunatal, Lohfelden etc.) tätig.' }
+    ];
+
     chatTrigger.addEventListener('click', () => {
-        chatWidget.classList.add('open');
+        chatWidget.style.display = 'flex';
         chatTrigger.style.display = 'none';
-        // Show quick replies if no conversation yet
-        if (chatBody.querySelectorAll('.message.user').length === 0) {
-            setTimeout(showQuickReplies, 600);
+        if (currentStep === 'init') {
+            // scrollToBottom
+            chatBody.scrollTop = chatBody.scrollHeight;
         }
     });
 
     closeChat.addEventListener('click', () => {
-        chatWidget.classList.remove('open');
+        chatWidget.style.display = 'none';
         chatTrigger.style.display = 'flex';
     });
 
-    // Add message to chat
     const addMessage = (text, sender) => {
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('message', sender);
-        msgDiv.innerHTML = text;
+        msgDiv.innerHTML = text.replace(/\n/g, '<br>');
         chatBody.appendChild(msgDiv);
         chatBody.scrollTop = chatBody.scrollHeight;
+        return msgDiv;
     };
 
-    // Show typing indicator
     const showTyping = () => {
         const typing = document.createElement('div');
-        typing.className = 'typing-indicator';
-        typing.id = 'typing-indicator';
-        typing.innerHTML = '<span></span><span></span><span></span>';
+        typing.classList.add('message', 'bot', 'typing');
+        typing.textContent = 'Schreibt...';
         chatBody.appendChild(typing);
         chatBody.scrollTop = chatBody.scrollHeight;
+        return typing;
     };
 
-    const hideTyping = () => {
-        const typing = document.getElementById('typing-indicator');
-        if (typing) typing.remove();
-    };
-
-    // Show quick reply buttons
-    const showQuickReplies = () => {
-        const div = document.createElement('div');
-        div.className = 'quick-replies';
-        div.id = 'quick-replies';
-        div.innerHTML = `
-            <button class="quick-btn" data-action="inspection">🔍 Kostenlose Besichtigung</button>
-            <button class="quick-btn" data-action="emergency">🚨 Notfall melden</button>
-            <button class="quick-btn" data-action="quote">💰 Angebot anfragen</button>
-            <button class="quick-btn" data-action="faq">❓ Fragen zur Reparatur</button>
-        `;
-        chatBody.appendChild(div);
-        chatBody.scrollTop = chatBody.scrollHeight;
-
-        div.querySelectorAll('.quick-btn').forEach(btn => {
-            btn.addEventListener('click', () => handleQuickReply(btn.dataset.action));
-        });
-    };
-
-    const removeQuickReplies = () => {
-        const qr = document.getElementById('quick-replies');
-        if (qr) qr.remove();
-    };
-
-    // Show lead form inside chat
-    const showLeadForm = (fields) => {
-        const formDiv = document.createElement('div');
-        formDiv.className = 'chat-lead-form';
-        let html = '<form id="chat-lead-form">';
-
-        if (fields.includes('name')) {
-            html += '<input type="text" name="name" placeholder="Vor- und Nachname *" required>';
-        }
-        if (fields.includes('phone')) {
-            html += '<input type="tel" name="phone" placeholder="Telefonnummer *" required>';
-        }
-        if (fields.includes('address')) {
-            html += '<input type="text" name="address" placeholder="Ihre Adresse (Straße, PLZ, Ort)">';
-        }
-        if (fields.includes('date')) {
-            html += '<input type="date" name="date">';
-        }
-
-        html += '<button type="submit" class="btn-chat-submit"><i class="fas fa-paper-plane"></i> Absenden & Termin sichern</button>';
-        html += '</form>';
-        formDiv.innerHTML = html;
-        chatBody.appendChild(formDiv);
-        chatBody.scrollTop = chatBody.scrollHeight;
-
-        const form = formDiv.querySelector('form');
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const fd = new FormData(form);
-            if (fields.includes('name')) leadData.name = fd.get('name');
-            if (fields.includes('phone')) leadData.phone = fd.get('phone');
-            if (fields.includes('address')) leadData.address = fd.get('address');
-            if (fields.includes('date')) leadData.date = fd.get('date');
-
-            // Log lead
-            console.log('=== CHAT LEAD ===', { ...leadData, timestamp: new Date().toISOString() });
-
-            formDiv.remove();
-            showTyping();
-            setTimeout(() => {
-                hideTyping();
-                addMessage('Vielen Dank! <strong>Wir melden uns innerhalb von 24 Stunden bei Ihnen.</strong> Möchten Sie gleich einen Termin für die kostenlose Besichtigung?', 'bot');
-                setTimeout(() => showQuickReplies(), 500);
-            }, 1500);
-        });
-    };
-
-    // Handle quick reply clicks
-    const handleQuickReply = (action) => {
-        removeQuickReplies();
-
-        switch(action) {
-            case 'inspection':
-                showTyping();
-                setTimeout(() => {
-                    hideTyping();
-                    addMessage('Gerne! Eine <strong>kostenlose Besichtigung</strong> ist der beste erste Schritt. Ein Meister kommt zu Ihnen, begutachtet Ihr Dach und erstellt ein unverbindliches Festpreis-Angebot.', 'bot');
-                    setTimeout(() => {
-                        addMessage('Bitte hinterlassen Sie Ihre Daten:', 'bot');
-                        showLeadForm(['name', 'phone', 'address', 'date']);
-                    }, 500);
-                }, 1000);
-                break;
-
-            case 'emergency':
-                showTyping();
-                setTimeout(() => {
-                    hideTyping();
-                    addMessage('🚨 <strong>Notdienst!</strong> Bei akuten Schäden rufen Sie uns bitte sofort an:', 'bot');
-                    setTimeout(() => {
-                        addMessage('📞 <a href="tel:+4956112345678" style="color:#F47920;font-weight:700;font-size:1.2rem;">+49 561 123 456 78</a><br><br>Wir sind <strong>24/7</strong> für Sie da und innerhalb von 2 Stunden vor Ort.', 'bot');
-                        setTimeout(() => {
-                            addMessage('Soll ich trotzdem Ihre Daten aufnehmen, damit wir Sie zurückrufen können?', 'bot');
-                            setTimeout(() => showQuickReplies(), 400);
-                        }, 500);
-                    }, 800);
-                }, 1000);
-                break;
-
-            case 'quote':
-                showTyping();
-                setTimeout(() => {
-                    hideTyping();
-                    addMessage('Gerne erstellen wir Ihnen ein <strong>unverbindliches Festpreis-Angebot</strong>. Dafür benötige ich ein paar Informationen:', 'bot');
-                    setTimeout(() => {
-                        showLeadForm(['name', 'phone']);
-                    }, 500);
-                }, 1000);
-                break;
-
-            case 'faq':
-                showTyping();
-                setTimeout(() => {
-                    hideTyping();
-                    addMessage('Gerne beantworte ich Ihre Fragen zur Dachreparatur! Hier sind häufige Themen:', 'bot');
-                    setTimeout(() => {
-                        const div = document.createElement('div');
-                        div.className = 'quick-replies';
-                        div.innerHTML = `
-                            <button class="quick-btn" data-action="faq-cost">💰 Kosten einer Reparatur</button>
-                            <button class="quick-btn" data-action="faq-duration">⏱️ Dauer einer Neueindeckung</button>
-                            <button class="quick-btn" data-action="faq-insurance">📋 Versicherungsabwicklung</button>
-                            <button class="quick-btn" data-action="faq-emergency">🚨 Notdienst Wochenende</button>
-                        `;
-                        chatBody.appendChild(div);
-                        chatBody.scrollTop = chatBody.scrollHeight;
-                        div.querySelectorAll('.quick-btn').forEach(btn => {
-                            btn.addEventListener('click', () => {
-                                div.remove();
-                                handleFAQSubQuestion(btn.dataset.action);
-                            });
-                        });
-                    }, 500);
-                }, 1000);
-                break;
-        }
-    };
-
-    const handleFAQSubQuestion = (action) => {
-        showTyping();
+    const handleBotResponse = (text) => {
+        const typing = showTyping();
         setTimeout(() => {
-            hideTyping();
-            const answers = {
-                'faq-cost': 'Die <strong>Kosten einer Dachreparatur</strong> variieren je nach Schaden: Kleinreparaturen ab ca. €500, umfangreichere Sanierungen €2.000–€5.000. Eine <strong>kostenlose Besichtigung</strong> gibt Ihnen Klarheit – mit Festpreis-Garantie!',
-                'faq-duration': 'Ein Standard-Einfamilienhaus ist in <strong>3–7 Werktagen</strong> neu eingedeckt. Wir planen mit einem festen Zeitplan, den Sie vorab erhalten.',
-                'faq-insurance': 'Ja, wir <strong>übernehmen die Abwicklung mit Ihrer Versicherung</strong> komplett für Sie: Schadensbericht, Fotos, Kostenvoranschlag – alles aus einer Hand.',
-                'faq-emergency': 'Ja! Unser <strong>24/7 Notdienst</strong> ist auch an Wochenenden und Feiertagen für Sie da. Rufen Sie uns an: <a href="tel:+4956112345678" style="color:#F47920;font-weight:700;">+49 561 123 456 78</a>'
-            };
-            addMessage(answers[action] || 'Gerne beantworte ich Ihre Frage persönlich. Am besten vereinbaren wir eine kostenlose Besichtigung!', 'bot');
-            setTimeout(() => {
-                addMessage('Kann ich sonst noch etwas für Sie tun?', 'bot');
-                setTimeout(() => showQuickReplies(), 400);
-            }, 800);
+            typing.remove();
+            processFlow(text);
         }, 1000);
     };
 
-    // Handle text input (fallback for custom questions)
-    const handleTextInput = (text) => {
-        const query = text.toLowerCase().trim();
+    const processFlow = (userInput) => {
+        const input = userInput.toLowerCase();
 
-        let response = 'Vielen Dank für Ihre Nachricht! Am besten vereinbaren wir eine <strong>kostenlose Besichtigung</strong>, damit ein Meister sich Ihr Dach vor Ort ansehen kann. Klicken Sie einfach auf "Kostenlose Besichtigung" unten.';
+        // 1. Initial Flow Selection (if not in a flow)
+        if (currentStep === 'init' || flowType === 'faq') {
+            if (input.includes('besichtigung') || input === 'besichtigung') {
+                startBesichtigungFlow();
+                return;
+            } else if (input.includes('notfall') || input === 'notfall') {
+                startNotfallFlow();
+                return;
+            } else if (input.includes('angebot') || input === 'angebot') {
+                startAngebotFlow();
+                return;
+            } else if (input.includes('reparatur') || input === 'reparatur') {
+                addMessage("Gerne helfen wir bei Ihrer Reparatur. Handelt es sich um einen akuten Notfall (z.B. Wassereintritt) oder möchten Sie ein normales Angebot?", "bot");
+                showQuickReplies([
+                    {text: "Akuter Notfall", val: "notfall"},
+                    {text: "Normales Angebot", val: "angebot"}
+                ]);
+                return;
+            }
 
-        if (query.includes('hallo') || query.includes('hi') || query.includes('guten tag') || query.includes('guten morgen') || query.includes('guten abend')) {
-            response = 'Hallo! Schön, dass Sie da sind. Wie kann ich Ihnen rund um Ihr Dach in Kassel helfen?';
-            setTimeout(() => showQuickReplies(), 600);
-        } else if (query.includes('kosten') || query.includes('preis') || query.includes('was kostet') || query.includes('teuer')) {
-            response = 'Die Kosten hängen stark von Material und Fläche ab. Wir bieten <strong>kostenlose Inspektionen</strong> an, um Ihnen ein exaktes Festpreis-Angebot zu machen – ganz unverbindlich.';
-            setTimeout(() => showQuickReplies(), 600);
-        } else if (query.includes('reparatur') || query.includes('schaden') || query.includes('sturm') || query.includes('undicht') || query.includes('leck')) {
-            response = 'Bei Schäden reagieren wir <strong>schnell</strong>. Unser Notdienst ist 24/7 für Kassel erreichbar. Sollen wir sofort jemanden vorbeischicken?';
-            setTimeout(() => showQuickReplies(), 600);
-        } else if (query.includes('inspektion') || query.includes('termin') || query.includes('besichtigung') || query.includes('vorbeikommen') || query.includes('angebot')) {
-            response = 'Gerne! Eine <strong>kostenlose Besichtigung</strong> ist jederzeit möglich. Hinterlassen Sie mir bitte Ihre Daten, und wir melden uns zur Terminabstimmung.';
-            setTimeout(() => showLeadForm(['name', 'phone', 'address']), 600);
-        } else if (query.includes('flachdach') || query.includes('dachboden') || query.includes('ausbau')) {
-            response = 'Flachdächer und Dachausbau sind Spezialgebiete von uns, besonders für Gewerbeimmobilien in Kassel. Wir verwenden modernste Abdichtungssysteme und Dämmmaterialien.';
-        } else if (query.includes('meister') || query.includes('qualität') || query.includes('erfahrung') || query.includes('zertifiziert')) {
-            response = 'Ja, wir sind ein <strong>eingetragener Meisterbetrieb</strong> mit über 20 Jahren Erfahrung. Der Chef arbeitet selbst mit und garantiert höchste Qualität bei jedem Projekt.';
-        } else if (query.includes('danke') || query.includes('vielen dank')) {
-            response = 'Gerne! Wenn Sie weitere Fragen haben, bin ich jederzeit für Sie da. Einen schönen Tag noch! <br><br>📞 <a href="tel:+4956112345678" style="color:#F47920;font-weight:700;">Direkt anrufen: +49 561 123 456 78</a>';
-        } else if (query.includes('telefon') || query.includes('nummer') || query.includes('anrufen') || query.includes('kontakt')) {
-            response = 'Sie erreichen uns direkt unter: <br><br>📞 <strong><a href="tel:+4956112345678" style="color:#F47920;font-size:1.2rem;">+49 561 123 456 78</a></strong><br><br>Wir sind Mo–Fr von 7–18 Uhr und Sa von 8–14 Uhr für Sie da.';
-        } else if (query.includes('wo') || query.includes('gebiet') || query.includes('kassel') || query.includes('umgebung')) {
-            response = 'Wir sind in <strong>Kassel und Umgebung</strong> tätig: Kassel (alle Stadtteile), Vellmar, Baunatal, Lohfelden, Fuldatal, Ahnatal und viele weitere Gemeinden.';
+            // FAQ Matching
+            const matchedFaq = faqs.find(f => input.includes(f.q));
+            if (matchedFaq) {
+                addMessage(matchedFaq.a + "\n\nKann ich sonst noch etwas für Sie tun?", "bot");
+                showDefaultReplies();
+                flowType = 'faq';
+                return;
+            }
+
+            // Fallback
+            if (userInput !== "") {
+                addMessage("Das habe ich leider nicht ganz verstanden. Möchten Sie eine kostenlose Besichtigung vereinbaren oder ein Angebot anfragen?", "bot");
+                showDefaultReplies();
+            }
         }
 
-        return response;
+        // 2. Besichtigung Flow
+        else if (flowType === 'besichtigung') {
+            if (currentStep === 'ask_name') {
+                leadData.name = userInput;
+                currentStep = 'ask_phone';
+                addMessage(`Freut mich, Herr/Frau ${userInput}. Unter welcher Telefonnummer können wir Sie für die Terminabsprache erreichen?`, "bot");
+            } else if (currentStep === 'ask_phone') {
+                leadData.phone = userInput;
+                currentStep = 'ask_address';
+                addMessage("Vielen Dank. Und wie lautet die Adresse des Objekts in Kassel oder Umgebung?", "bot");
+            } else if (currentStep === 'ask_address') {
+                leadData.address = userInput;
+                currentStep = 'ask_date';
+                addMessage("Haben Sie einen Wunschtermin für die Besichtigung?", "bot");
+            } else if (currentStep === 'ask_date') {
+                leadData.date = userInput;
+                finishLead("Besichtigung");
+            }
+        }
+
+        // 3. Notfall Flow
+        else if (flowType === 'notfall') {
+            if (currentStep === 'ask_event') {
+                leadData.event = userInput;
+                currentStep = 'ask_phone_notfall';
+                addMessage("Verstanden. Bitte geben Sie mir Ihre Telefonnummer, damit unser Notfall-Team Sie sofort kontaktieren kann.", "bot");
+            } else if (currentStep === 'ask_phone_notfall') {
+                leadData.phone = userInput;
+                finishLead("NOTFALL");
+            }
+        }
+
+        // 4. Angebot Flow
+        else if (flowType === 'angebot') {
+            if (currentStep === 'ask_roof_type') {
+                leadData.roofType = userInput;
+                currentStep = 'ask_size';
+                addMessage("Ungefähr wie viele Quadratmeter hat das Dach?", "bot");
+            } else if (currentStep === 'ask_size') {
+                leadData.size = userInput;
+                currentStep = 'ask_contact';
+                addMessage("Alles klar. Bitte hinterlassen Sie mir Ihren Namen und Ihre Telefonnummer für das Angebot.", "bot");
+            } else if (currentStep === 'ask_contact') {
+                leadData.contact = userInput;
+                finishLead("Angebot");
+            }
+        }
     };
 
-    // Send message handler
+    const startBesichtigungFlow = () => {
+        flowType = 'besichtigung';
+        currentStep = 'ask_name';
+        addMessage("Sehr gerne! Für eine kostenlose Besichtigung benötige ich ein paar Details. Wie ist Ihr Name?", "bot");
+        hideQuickReplies();
+    };
+
+    const startNotfallFlow = () => {
+        flowType = 'notfall';
+        currentStep = 'ask_event';
+        addMessage("<strong>NOTFALL-SERVICE:</strong> Bitte rufen Sie direkt <strong>+49 561 12345678</strong> an für die schnellste Hilfe!\n\nOder schreiben Sie mir hier kurz: Was ist passiert? (z.B. Sturmloch, Wasser im Dach)", "bot");
+        hideQuickReplies();
+    };
+
+    const startAngebotFlow = () => {
+        flowType = 'angebot';
+        currentStep = 'ask_roof_type';
+        addMessage("Gerne erstellen wir ein Angebot. Um was für ein Dach handelt es sich? (z.B. Steildach, Flachdach, Garage)", "bot");
+        hideQuickReplies();
+    };
+
+    const finishLead = (type) => {
+        console.log(`LEAD COLLECTED [${type}]:`, leadData);
+        addMessage(`<strong>Vielen Dank!</strong> Wir haben Ihre Anfrage für eine ${type} erhalten.\n\nEin Mitarbeiter von Dachdeckermeisterbetrieb Sloan wird sich innerhalb von 24 Stunden (im Notfall sofort) bei Ihnen melden.`, "bot");
+        
+        if (type !== "Besichtigung") {
+            setTimeout(() => {
+                addMessage("Möchten Sie zusätzlich gleich einen Termin für eine kostenlose Besichtigung reservieren?", "bot");
+                showQuickReplies([
+                    {text: "Ja, gerne", val: "besichtigung"},
+                    {text: "Nein, danke", val: "init"}
+                ]);
+            }, 2000);
+        } else {
+            showDefaultReplies();
+        }
+        
+        // Reset
+        flowType = 'faq'; // Allow general questions again
+        currentStep = 'init';
+    };
+
+    const showQuickReplies = (replies) => {
+        chatReplies.innerHTML = '';
+        replies.forEach(r => {
+            const btn = document.createElement('button');
+            btn.classList.add('reply-btn');
+            btn.textContent = r.text;
+            btn.dataset.value = r.val;
+            btn.addEventListener('click', () => {
+                addMessage(r.text, 'user');
+                handleBotResponse(r.val);
+            });
+            chatReplies.appendChild(btn);
+        });
+    };
+
+    const showDefaultReplies = () => {
+        showQuickReplies([
+            {text: "Kostenlose Besichtigung", val: "besichtigung"},
+            {text: "Notfall melden", val: "notfall"},
+            {text: "Angebot anfragen", val: "angebot"},
+            {text: "Fragen zur Reparatur", val: "reparatur"}
+        ]);
+    };
+
+    const hideQuickReplies = () => {
+        chatReplies.innerHTML = '';
+    };
+
     const handleSend = () => {
         const text = chatInput.value.trim();
-        if (!text) return;
-
-        addMessage(text, 'user');
-        chatInput.value = '';
-        removeQuickReplies();
-        chatStep = null;
-
-        showTyping();
-        setTimeout(() => {
-            hideTyping();
-            const response = handleTextInput(text);
-            addMessage(response, 'bot');
-            // If quick replies were shown inside handleTextInput, don't show defaults
-        }, 1000 + Math.random() * 800);
+        if (text) {
+            addMessage(text, 'user');
+            chatInput.value = '';
+            handleBotResponse(text);
+        }
     };
 
     sendChat.addEventListener('click', handleSend);
@@ -378,6 +278,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') handleSend();
     });
 
-    // Initial chatbot greeting with context
-    console.log('🤖 Sloan AI Sales Agent aktiv – Bereit für Leads aus Kassel!');
+    // Initialize buttons
+    document.querySelectorAll('.reply-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const val = this.dataset.value;
+            const text = this.textContent;
+            addMessage(text, 'user');
+            handleBotResponse(val);
+        });
+    });
+
+    // Hero Form Submission Mock
+    const heroForm = document.getElementById('hero-form');
+    if (heroForm) {
+        heroForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = heroForm.querySelector('button');
+            const originalText = btn.textContent;
+            btn.textContent = 'Gesendet!';
+            btn.disabled = true;
+            btn.style.background = '#28a745';
+            console.log("Hero Form Lead:", new FormData(heroForm));
+            setTimeout(() => {
+                heroForm.reset();
+                btn.textContent = originalText;
+                btn.disabled = false;
+                btn.style.background = '';
+            }, 3000);
+        });
+    }
+
+    // Final Form Submission Mock
+    const finalForm = document.getElementById('final-form');
+    if (finalForm) {
+        finalForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = finalForm.querySelector('button');
+            btn.textContent = 'Termin angefragt!';
+            btn.disabled = true;
+            console.log("Final CTA Lead:", new FormData(finalForm));
+        });
+    }
 });
